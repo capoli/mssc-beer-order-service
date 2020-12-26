@@ -1,9 +1,17 @@
-package guru.sfg.beer.order.service.domain;/**
-*
-* @author Olivier Cappelle
-* @see
-* @version x.x.x
-* @since x.x.x 26/12/2020
-**/
+package guru.sfg.beer.order.service.domain;
+
+/**
+ * @author Olivier Cappelle
+ * @version x.x.x
+ * @see
+ * @since x.x.x 26/12/2020
+ **/
 public enum BeerOrderEventEnum {
+    VALIDATE_ORDER,
+    VALIDATION_PASSED,
+    VALIDATION_FAILED,
+    ALLOCATION_SUCCESS,
+    ALLOCATION_FAILED,
+    ALLOCATION_NO_INVENTORY,
+    BEER_ORDER_PICKED_UP
 }
