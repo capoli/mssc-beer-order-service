@@ -23,7 +23,10 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class BeerOrderManagerImpl implements BeerOrderManager {
+    public static final String BEER_ORDER_ID_HEADER = "beer_order_id";
+
     private final StateMachineFactory<BeerOrderStatusEnum, BeerOrderEventEnum> stateMachineFactory;
+    private final BeerOrderStateChangeInterceptor beerOrderStateChangeInterceptor;
     private final BeerOrderRepository beerOrderRepository;
 
     @Transactional
@@ -39,7 +42,9 @@ public class BeerOrderManagerImpl implements BeerOrderManager {
 
     private void sendBeerOrderEvent(BeerOrder beerOrder, BeerOrderEventEnum eventEnum) {
         var stateMachine = build(beerOrder);
-        var msg = MessageBuilder.withPayload(eventEnum).build();
+        var msg = MessageBuilder.withPayload(eventEnum)
+                .setHeader(BEER_ORDER_ID_HEADER, beerOrder.getId().toString())
+                .build();
         stateMachine.sendEvent(msg);
     }
 
@@ -47,7 +52,10 @@ public class BeerOrderManagerImpl implements BeerOrderManager {
         var stateMachine = stateMachineFactory.getStateMachine(beerOrder.getId());
         stateMachine.stop();
         stateMachine.getStateMachineAccessor()
-                .doWithAllRegions(sma -> sma.resetStateMachine(new DefaultStateMachineContext<>(beerOrder.getOrderStatus(), null, null, null)));
+                .doWithAllRegions(sma -> {
+                    sma.addStateMachineInterceptor(beerOrderStateChangeInterceptor);
+                    sma.resetStateMachine(new DefaultStateMachineContext<>(beerOrder.getOrderStatus(), null, null, null));
+                });
         stateMachine.start();
         return stateMachine;
     }
