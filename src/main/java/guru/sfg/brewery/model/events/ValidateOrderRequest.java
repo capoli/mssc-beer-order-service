@@ -15,7 +15,7 @@ import java.io.Serializable;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder(builderClassName = "Builder")
-public class ValidateBeerOrderRequest implements Serializable {
+public class ValidateOrderRequest implements Serializable {
     static final long serialVersionUID = -7392220653968861877L;
 
     @NonNull

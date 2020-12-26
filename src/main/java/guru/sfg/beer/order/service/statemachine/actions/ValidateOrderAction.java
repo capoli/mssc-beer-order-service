@@ -3,7 +3,7 @@ package guru.sfg.beer.order.service.statemachine.actions;
 import guru.sfg.beer.order.service.domain.BeerOrderStatusEnum;
 import guru.sfg.beer.order.service.repositories.BeerOrderRepository;
 import guru.sfg.beer.order.service.web.mappers.BeerOrderMapper;
-import guru.sfg.brewery.model.events.ValidateBeerOrderRequest;
+import guru.sfg.brewery.model.events.ValidateOrderRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jms.core.JmsTemplate;
@@ -36,7 +36,7 @@ public class ValidateOrderAction implements Action<BeerOrderStatusEnum, BeerOrde
 //        var orderIdHeader = (String) stateContext.getMessage().getHeaders().get(BEER_ORDER_ID_HEADER);
         var beerOrder = beerOrderRepository.getOne(UUID.fromString(orderIdHeader));
 
-        var validateBeerOrderRequest = ValidateBeerOrderRequest.builder()
+        var validateBeerOrderRequest = ValidateOrderRequest.builder()
                 .beerOrder(beerOrderMapper.beerOrderToDto(beerOrder))
                 .build();
         jmsTemplate.convertAndSend(VALIDATE_ORDER_QUEUE, validateBeerOrderRequest);
