@@ -48,6 +48,11 @@ public class BeerOrderManagerImpl implements BeerOrderManager {
         BeerOrder beerOrder = beerOrderRepository.getOne(orderId);
         if (isValid) {
             sendBeerOrderEvent(beerOrder, BeerOrderEventEnum.VALIDATION_PASSED);
+
+            //Get order again, after event is sent, BeerOrderStateChangeInterceptor will change and persist order to db
+            //And trigger next event
+            BeerOrder validatedOrder = beerOrderRepository.getOne(orderId);
+            sendBeerOrderEvent(validatedOrder, BeerOrderEventEnum.ALLOCATED_ORDER);
         } else {
             sendBeerOrderEvent(beerOrder, BeerOrderEventEnum.VALIDATION_FAILED);
         }
