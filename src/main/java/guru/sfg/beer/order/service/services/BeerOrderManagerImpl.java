@@ -88,6 +88,13 @@ public class BeerOrderManagerImpl implements BeerOrderManager {
                 logError(beerOrderDto.getId()));
     }
 
+    @Override
+    public void beerOrderPickedUp(UUID orderId) {
+        beerOrderRepository.findById(orderId).ifPresentOrElse(
+                beerOrder -> sendBeerOrderEvent(beerOrder, BeerOrderEventEnum.BEER_ORDER_PICKED_UP),
+                logError(orderId));
+    }
+
     private void updateAllocatedQty(BeerOrderDto beerOrderDto) {
         beerOrderRepository.findById(beerOrderDto.getId()).ifPresentOrElse(allocatedOrder -> {
             allocatedOrder.getBeerOrderLines().forEach(beerOrderLine ->
