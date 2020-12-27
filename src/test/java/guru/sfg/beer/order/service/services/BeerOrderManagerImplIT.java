@@ -12,6 +12,7 @@ import guru.sfg.beer.order.service.repositories.BeerOrderRepository;
 import guru.sfg.beer.order.service.repositories.CustomerRepository;
 import guru.sfg.beer.order.service.services.beer.BeerServiceImpl;
 import guru.sfg.brewery.model.BeerDto;
+import org.awaitility.core.ConditionFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -36,6 +37,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @ExtendWith(WireMockExtension.class)
 @SpringBootTest
 class BeerOrderManagerImplIT {
+    public final ConditionFactory await = await().atMost(20, TimeUnit.SECONDS);
+
     @Autowired
     BeerOrderManager beerOrderManager;
 
@@ -73,16 +76,22 @@ class BeerOrderManagerImplIT {
 
         BeerOrder savedBeerOrder = beerOrderManager.newBeerOrder(beerOrder);
 
-        await().atMost(5, TimeUnit.MINUTES).untilAsserted(() -> {
+        await.untilAsserted(() -> {
             BeerOrder foundOrder = beerOrderRepository.findById(savedBeerOrder.getId()).get();
             assertEquals(BeerOrderStatusEnum.ALLOCATED, foundOrder.getOrderStatus());
+        });
+        await.untilAsserted(() -> {
+            BeerOrder foundOrder = beerOrderRepository.findById(savedBeerOrder.getId()).get();
+            BeerOrderLine line = foundOrder.getBeerOrderLines().iterator().next();
+            assertEquals(line.getOrderQuantity(), line.getQuantityAllocated());
         });
 
         BeerOrder orderAfterWaitingToBeAllocated = beerOrderRepository.findById(savedBeerOrder.getId()).get();
 
-        assertNotNull(savedBeerOrder);
         assertNotNull(orderAfterWaitingToBeAllocated);
         assertEquals(BeerOrderStatusEnum.ALLOCATED, orderAfterWaitingToBeAllocated.getOrderStatus());
+        orderAfterWaitingToBeAllocated.getBeerOrderLines().forEach(line ->
+                assertEquals(line.getOrderQuantity(), line.getQuantityAllocated()));
     }
 
     public BeerOrder createBeerOrder() {
