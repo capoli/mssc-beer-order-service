@@ -1,6 +1,5 @@
 package guru.sfg.beer.order.service.statemachine;
 
-import guru.sfg.beer.order.service.domain.BeerOrder;
 import guru.sfg.beer.order.service.domain.BeerOrderEventEnum;
 import guru.sfg.beer.order.service.domain.BeerOrderStatusEnum;
 import guru.sfg.beer.order.service.repositories.BeerOrderRepository;
@@ -31,16 +30,16 @@ import static guru.sfg.beer.order.service.services.BeerOrderManagerImpl.BEER_ORD
 public class BeerOrderStateChangeInterceptor extends StateMachineInterceptorAdapter<BeerOrderStatusEnum, BeerOrderEventEnum> {
     private final BeerOrderRepository beerOrderRepository;
 
+    //Important to set transactional here
     @Transactional
     @Override
     public void preStateChange(State<BeerOrderStatusEnum, BeerOrderEventEnum> state, Message<BeerOrderEventEnum> message, Transition<BeerOrderStatusEnum, BeerOrderEventEnum> transition, StateMachine<BeerOrderStatusEnum, BeerOrderEventEnum> stateMachine) {
         Optional.ofNullable(message)
                 .flatMap(msg -> Optional.ofNullable((String) msg.getHeaders().getOrDefault(BEER_ORDER_ID_HEADER, -1)))
-                .ifPresent(orderId -> {
-                    log.debug("Saving state for beer order id {} and status {}", orderId, state.getId());
-                    BeerOrder beerOrder = beerOrderRepository.getOne(UUID.fromString(orderId));
+                .flatMap(orderId -> beerOrderRepository.findById(UUID.fromString(orderId)))
+                .ifPresent(beerOrder -> {
+                    log.debug("Saving state for beer order id {} and status {}", beerOrder.getId(), state.getId());
                     beerOrder.setOrderStatus(state.getId());
-//                    beerOrderRepository.save(beerOrder);
                     //Override lazy write from hibernate and manage it ourselves (we want it to write faster)
                     beerOrderRepository.saveAndFlush(beerOrder);
                 });

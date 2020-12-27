@@ -16,7 +16,34 @@
 
     <description>MSSC Beer Order Service</description>
 
+    <properties>
+        <wiremock-extension.version>0.4.0</wiremock-extension.version>
+    </properties>
 
     <dependencies>
+        <!-- embedded server for tests -->
+        <dependency>
+            <groupId>org.apache.activemq</groupId>
+            <artifactId>artemis-jms-server</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.github.JensPiegsa</groupId>
+            <artifactId>wiremock-extension</artifactId>
+            <version>${wiremock-extension.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.junit.jupiter</groupId>
+                    <artifactId>junit-jupiter-api</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
     </dependencies>
+
+    <repositories>
+        <repository>
+            <id>jitpack.io</id>
+            <url>https://jitpack.io</url>
+        </repository>
+    </repositories>
 </project>

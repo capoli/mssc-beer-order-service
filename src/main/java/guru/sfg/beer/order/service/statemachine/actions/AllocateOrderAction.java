@@ -3,8 +3,9 @@ package guru.sfg.beer.order.service.statemachine.actions;
 import guru.sfg.beer.order.service.domain.BeerOrderEventEnum;
 import guru.sfg.beer.order.service.domain.BeerOrderStatusEnum;
 import guru.sfg.beer.order.service.repositories.BeerOrderRepository;
+import guru.sfg.beer.order.service.util.LoggingUtil;
 import guru.sfg.beer.order.service.web.mappers.BeerOrderMapper;
-import guru.sfg.brewery.model.events.ValidateOrderRequest;
+import guru.sfg.brewery.model.events.AllocateOrderRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jms.core.JmsTemplate;
@@ -14,7 +15,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.UUID;
 
-import static guru.sfg.beer.order.service.config.JmsConfig.VALIDATE_ORDER_QUEUE;
+import static guru.sfg.beer.order.service.config.JmsConfig.ALLOCATE_ORDER_QUEUE;
 import static guru.sfg.beer.order.service.services.BeerOrderManagerImpl.BEER_ORDER_ID_HEADER;
 
 /**
@@ -34,12 +35,13 @@ public class AllocateOrderAction implements Action<BeerOrderStatusEnum, BeerOrde
     @Override
     public void execute(StateContext<BeerOrderStatusEnum, BeerOrderEventEnum> stateContext) {
         var orderIdHeader = (String) stateContext.getMessageHeader(BEER_ORDER_ID_HEADER);
-        var beerOrder = beerOrderRepository.getOne(UUID.fromString(orderIdHeader));
-
-        var validateBeerOrderRequest = ValidateOrderRequest.builder()
-                .beerOrder(beerOrderMapper.beerOrderToDto(beerOrder))
-                .build();
-        jmsTemplate.convertAndSend(VALIDATE_ORDER_QUEUE, validateBeerOrderRequest);
-        log.debug("Sent Validation request on QUEUE {} with order id {} and payload {}", VALIDATE_ORDER_QUEUE, orderIdHeader, validateBeerOrderRequest);
+        UUID orderId = UUID.fromString(orderIdHeader);
+        beerOrderRepository.findById(orderId).ifPresentOrElse(beerOrder -> {
+            var allocateOrderRequest = AllocateOrderRequest.builder()
+                    .beerOrder(beerOrderMapper.beerOrderToDto(beerOrder))
+                    .build();
+            jmsTemplate.convertAndSend(ALLOCATE_ORDER_QUEUE, allocateOrderRequest);
+            log.debug("Sent Allocation request on QUEUE {} with order id {} and payload {}", ALLOCATE_ORDER_QUEUE, orderIdHeader, allocateOrderRequest);
+        }, LoggingUtil.logError(orderId));
     }
 }

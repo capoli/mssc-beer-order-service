@@ -26,9 +26,14 @@ public class JmsConfig {
         converter.setTypeIdPropertyName("_type");
         //if this is not set, jms will use it's own empty objectMapper, you want to use the spring objectMapper
         converter.setObjectMapper(objectMapper
+                //Can also be set in properties
+                //spring.jackson.serialization.write-dates-as-timestamps=false
+                //spring.jackson.serialization.write-date-timestamps-as-nanoseconds=true
                 .configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false)
+                .configure(SerializationFeature.WRITE_DATE_TIMESTAMPS_AS_NANOSECONDS, true)
                 .registerModule(new JavaTimeModule())
         );
+
         return converter;
     }
 }

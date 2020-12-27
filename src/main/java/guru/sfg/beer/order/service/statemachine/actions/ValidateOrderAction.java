@@ -1,7 +1,9 @@
 package guru.sfg.beer.order.service.statemachine.actions;
 
+import guru.sfg.beer.order.service.domain.BeerOrderEventEnum;
 import guru.sfg.beer.order.service.domain.BeerOrderStatusEnum;
 import guru.sfg.beer.order.service.repositories.BeerOrderRepository;
+import guru.sfg.beer.order.service.util.LoggingUtil;
 import guru.sfg.beer.order.service.web.mappers.BeerOrderMapper;
 import guru.sfg.brewery.model.events.ValidateOrderRequest;
 import lombok.RequiredArgsConstructor;
@@ -25,22 +27,25 @@ import static guru.sfg.beer.order.service.services.BeerOrderManagerImpl.BEER_ORD
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class ValidateOrderAction implements Action<BeerOrderStatusEnum, BeerOrderStatusEnum> {
+public class ValidateOrderAction implements Action<BeerOrderStatusEnum, BeerOrderEventEnum> {
     private final JmsTemplate jmsTemplate;
     private final BeerOrderRepository beerOrderRepository;
     private final BeerOrderMapper beerOrderMapper;
 
     @Override
-    public void execute(StateContext<BeerOrderStatusEnum, BeerOrderStatusEnum> stateContext) {
+    public void execute(StateContext<BeerOrderStatusEnum, BeerOrderEventEnum> stateContext) {
         var orderIdHeader = (String) stateContext.getMessageHeader(BEER_ORDER_ID_HEADER);
+        UUID orderId = UUID.fromString(orderIdHeader);
         //Other way to get header
 //        var orderIdHeader = (String) stateContext.getMessage().getHeaders().get(BEER_ORDER_ID_HEADER);
-        var beerOrder = beerOrderRepository.getOne(UUID.fromString(orderIdHeader));
 
-        var validateBeerOrderRequest = ValidateOrderRequest.builder()
-                .beerOrder(beerOrderMapper.beerOrderToDto(beerOrder))
-                .build();
-        jmsTemplate.convertAndSend(VALIDATE_ORDER_QUEUE, validateBeerOrderRequest);
-        log.debug("Sent Validation request on QUEUE {} with order id {} and payload {}", VALIDATE_ORDER_QUEUE, orderIdHeader, validateBeerOrderRequest);
+        beerOrderRepository.findById(orderId).ifPresentOrElse(beerOrder -> {
+            var validateBeerOrderRequest = ValidateOrderRequest.builder()
+                    .beerOrder(beerOrderMapper.beerOrderToDto(beerOrder))
+                    .build();
+            jmsTemplate.convertAndSend(VALIDATE_ORDER_QUEUE, validateBeerOrderRequest);
+            log.debug("Sent Validation request on QUEUE {} with order id {} and payload {}", VALIDATE_ORDER_QUEUE, orderIdHeader, validateBeerOrderRequest);
+        }, LoggingUtil.logError(orderId));
     }
+
 }
